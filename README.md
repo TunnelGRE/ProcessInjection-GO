@@ -1,5 +1,7 @@
 # ProcessInjection-GO
 
+Shellcode encryption in RC4 and process injection into explorer.exe.
+
 Tested with metasploit shellcode and it bypass EDR. 
 
 
