@@ -1,6 +1,6 @@
 # ProcessInjection-GO
 
-Shellcode encrypted in RC4 and process injection into explorer.exe.
+Shellcode encrypted in RC4 and process injection into explorer.exe. Added the patch to etwEventWrite function in order to avoid ETW tracing.
 
 Tested with metasploit shellcode and it bypass EDR. 
 
